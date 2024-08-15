@@ -1,6 +1,6 @@
 def shunting_yard_regex(expression):
     precedence = {'*': 3, '': 2, '+': 1}
-    associative = {'*': 'R', '+': 'L', '.': 'L'}
+    associative = {'*': 'R', '': 'L', '+': 'L'}
     output = []
     operators = []
     
@@ -8,7 +8,7 @@ def shunting_yard_regex(expression):
     while i < len(expression):
         token = expression[i]
 
-        if token.isalnum():
+        if token.isalnum() or token == '#':
             output.append(token)
         elif token in precedence:
             while (operators and operators[-1] != '(' and
@@ -25,9 +25,9 @@ def shunting_yard_regex(expression):
         
         if i + 1 < len(expression):
             next_token = expression[i + 1]
-            if (token.isalnum() or token == ')' or token == '*') and (next_token.isalnum() or next_token == '('):
-                operators.append('')
-
+            if (token.isalnum() or token == ')' or token == '*' or token == '#') and (next_token.isalnum() or next_token == '(' or next_token == '#'):
+                if not (token == '*' and next_token == '*'):
+                    operators.append('')
         i += 1
 
     while operators:
