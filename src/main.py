@@ -1,7 +1,8 @@
 import re
-from shunting_yard import shunting_yard_regex
-from thompson import regex_to_nfa_thompson
 import pprint
+from src.Controller.shunting_yard import shunting_yard_regex
+from src.Controller.thompson import regex_to_nfa_thompson
+
 
 def main():
     allowed_characters = re.compile(r'^[a-zA-Z()#+*]*$')
