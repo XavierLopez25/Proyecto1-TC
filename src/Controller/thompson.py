@@ -1,10 +1,11 @@
-from src.Model.node import Node
-
-
-def regex_to_nfa_thompson(expression):
+from Model.node import Node
+def regex_to_nfa_thompson(expression, verbose=False):
     def parse_regex(expression):
         tokens = list(expression.replace(' ', ''))
         i = 0
+
+        if verbose:
+            print(f"Parsing expression: {expression}")
 
         def parse_term():
             nonlocal i
@@ -17,13 +18,15 @@ def regex_to_nfa_thompson(expression):
                     i += 1
                     return subexpr
                 else:
-                    raise ValueError("Paréntesis desbalanceados")
+                    raise ValueError("Unbalanced parentheses")
             elif tokens[i].isalpha() or tokens[i] == '#':
                 char = tokens[i]
                 i += 1
+                if verbose:
+                    print(f"Parsed character: {char}")
                 return Node('CHAR', value=char)
             else:
-                raise ValueError(f"Token inesperado: {tokens[i]}")
+                raise ValueError(f"Unexpected token: {tokens[i]}")
 
         def parse_factor():
             nonlocal i
@@ -31,10 +34,16 @@ def regex_to_nfa_thompson(expression):
             while i < len(tokens) and tokens[i] in '*+?':
                 if tokens[i] == '*':
                     node = Node('KLEENE', [node])
+                    if verbose:
+                        print(f"Parsed Kleene star for {node}")
                 elif tokens[i] == '+':
                     node = Node('PLUS', [node])
+                    if verbose:
+                        print(f"Parsed Plus for {node}")
                 elif tokens[i] == '?':
                     node = Node('OPTIONAL', [node])
+                    if verbose:
+                        print(f"Parsed Optional for {node}")
                 i += 1
             return node
 
@@ -58,10 +67,15 @@ def regex_to_nfa_thompson(expression):
         return parse_expression()
 
     def thompson_construction(node):
+        if verbose:
+            print(f"Constructing NFA for node: {node}")
+
         if node.type == 'CHAR':
             start = {}
             end = {}
             start[node.value] = [end]
+            if verbose:
+                print(f"Created NFA for character {node.value}")
             return start, end
 
         elif node.type == 'CONCAT':
@@ -104,6 +118,10 @@ def regex_to_nfa_thompson(expression):
             start['EPSILON'] = [child_start, end]
             child_end['EPSILON'] = [end]
             return start, end
+
+        # If the node type is not recognized, raise an exception to avoid returning None
+        else:
+            raise ValueError(f"Unrecognized node type: {node.type}")
 
     def convert_to_dict(start_state, end_state):
         state_counter = 0
