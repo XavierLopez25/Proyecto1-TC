@@ -73,7 +73,10 @@ def regex_to_nfa_thompson(expression, verbose=False):
         if node.type == 'CHAR':
             start = {}
             end = {}
-            start[node.value] = [end]
+            if node.value == '#':
+                start['EPSILON'] = [end]
+            else:
+                start[node.value] = [end]
             if verbose:
                 print(f"Created NFA for character {node.value}")
             return start, end
