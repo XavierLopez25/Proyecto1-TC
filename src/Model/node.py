@@ -5,8 +5,10 @@ class Node:
         self.value = value
 
     def __str__(self):
-        if self.type in ['CHAR', 'EPSILON']:
+        if self.type == 'CHAR':
             return self.value
+        elif self.type == 'EPSILON':
+            return '#'  
         elif self.type == 'CONCAT':
             return '.'.join(str(child) for child in self.children)
         elif self.type == 'ALTERNATE':

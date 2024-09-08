@@ -2,11 +2,12 @@ import re
 import pprint
 from Controller.shunting_yard import shunting_yard_regex
 from Controller.thompson import regex_to_nfa_thompson
+from Controller.subset_construction import subset_construction
 
 def main():
-    allowed_characters = re.compile(r'^[a-zA-Z()#+*]*$')
-    
-    expression = input("Enter a regex expression (only characters allowed: ),(,*,+, and letters): ")
+    allowed_characters = re.compile(r'^[a-zA-Z()|+*#]*$')
+
+    expression = input("Enter a regex expression (only characters allowed: ),(,*,+,| and letters): ")
     verbose = input("Enable verbose mode? (yes/no): ").lower() == 'yes'
     
     if allowed_characters.match(expression):
@@ -15,6 +16,11 @@ def main():
         print("Postfix:", postfix)
         print("AFN w/ Thompson:")
         pprint.pprint(afn_thompson)
+
+        start_state = 'S0'
+        afd = subset_construction(afn_thompson, start_state)
+        print('Resulting AFD: ')
+        pprint.pprint(afd, width=1) 
     else:
         print("Invalid input. Please use only the allowed characters.")
 
