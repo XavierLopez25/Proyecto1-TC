@@ -3,6 +3,7 @@ import pprint
 from Controller.shunting_yard import shunting_yard_regex
 from Controller.thompson import regex_to_nfa_thompson
 from Controller.subset_construction import subset_construction
+from Controller.hopcroft import hopcroft_minimization
 
 def main():
     allowed_characters = re.compile(r'^[a-zA-Z()|+*#]*$')
@@ -21,6 +22,10 @@ def main():
         afd = subset_construction(afn_thompson, start_state)
         print('Resulting AFD: ')
         pprint.pprint(afd, width=1) 
+
+        print('Minimized AFD: ')
+        minimized_afd = hopcroft_minimization(afd)
+        pprint.pprint(minimized_afd, width=1)
     else:
         print("Invalid input. Please use only the allowed characters.")
 
