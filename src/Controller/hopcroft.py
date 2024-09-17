@@ -11,14 +11,27 @@ def remove_acceptance_marks(afd):
     return new_afd, acceptance_states
 
 def hopcroft_minimization(afd):
+
+
     afd, acceptance_states = remove_acceptance_marks(afd)
 
     states = set(afd.keys())
     alphabet = set(next(iter(afd.values())).keys())  # Asumimos que todos los estados tienen el mismo alfabeto
     non_acceptance_states = states - acceptance_states
     
+    # Verificar si el autómata tiene un solo estado y ese estado no tiene transiciones
+    if len(afd) == 1 and all(not transitions for transitions in afd.values()):
+        # Además, verificar si ese único estado es un estado de aceptación
+        only_state = next(iter(afd))
+        if only_state in acceptance_states:
+            return {only_state + '*': {}}  # Marcamos el estado como de aceptación
+
     # Inicialización de las particiones
-    partitions = [acceptance_states, non_acceptance_states]
+
+    # Inicialización de particiones considerando los estados de aceptación
+    acceptance_partition = {state for state in afd if '*' in state}
+    non_acceptance_partition = set(afd.keys()) - acceptance_partition
+    partitions = [acceptance_partition, non_acceptance_partition] if acceptance_partition else [non_acceptance_partition]
 
     def find_partition(state):
         if state is None:
@@ -32,16 +45,18 @@ def hopcroft_minimization(afd):
     def refine(partition, symbol):
         new_partitions = {}
         for state in partition:
-            next_state = afd[state][symbol]
-            if next_state is None:
-                part = None
-            else:
-                part = tuple(find_partition(next_state))  # Convertir a tupla para ser hasheable
-            if part not in new_partitions:
-                new_partitions[part] = set()
-            new_partitions[part].add(state)
+            next_state = afd[state][symbol] if symbol in afd[state] else None
+            # Identificar si el próximo estado es un estado de aceptación
+            accepting_transition = '*' in next_state if next_state else False
+            # Crear una clave que incluya la información de aceptación
+            transition_key = (next_state, accepting_transition)
+
+            if transition_key not in new_partitions:
+                new_partitions[transition_key] = set()
+            new_partitions[transition_key].add(state)
 
         return list(new_partitions.values())
+
 
     changed = True
     while changed:
@@ -92,5 +107,5 @@ def hopcroft_minimization(afd):
                 if all(afd[state][symbol] == representative_state for state in partition):
                     minimized_afd[partition_name][symbol] = partition_name
 
-    return minimized_afd
 
+    return minimized_afd

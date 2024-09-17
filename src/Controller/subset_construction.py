@@ -1,10 +1,11 @@
 def epsilon_closure(states, nfa):
-    """Calcula la clausura epsilon de un conjunto de estados dado."""
+    print(f"Calculando epsilon-closure para los estados: {states}")
     closure = set(states)
     stack = list(states)
     while stack:
         current = stack.pop()
-
+        print(f"Procesando el estado: {current}")
+        
         # Manejo de estados con asterisco
         if current not in nfa and current + '*' in nfa:
             current = current + '*'  # Usar el estado con asterisco si no se encuentra sin él
@@ -17,6 +18,7 @@ def epsilon_closure(states, nfa):
                 if next_state not in closure:
                     closure.add(next_state)
                     stack.append(next_state)
+    print(f"Clausura epsilon final: {closure}")
     return frozenset(closure)
 
 
@@ -36,14 +38,25 @@ def move(states, symbol, nfa):
     return frozenset(result)
 
 
+def normalize_state_name(state):
+    """Normaliza el nombre del estado eliminando el asterisco si lo tiene."""
+    return state.rstrip('*')
+
 def subset_construction(nfa, start_state):
-    """Construye un AFD a partir de un AFN utilizando el método de construcción de subconjuntos."""
     initial = epsilon_closure({start_state}, nfa)
     states = [initial]
     dfa = {}
     state_names = {initial: 'S0'}
     state_count = 1
     accepting_states = set()
+
+    # Identificar los estados de aceptación en el NFA, incluyendo versiones con y sin asterisco
+    nfa_accepting_states = {state.rstrip('*') for state in nfa if '*' in state}
+    nfa_accepting_states.update({state + '*' for state in nfa_accepting_states})  # Añadir versiones con asterisco
+
+    # Verificar si el estado inicial incluye algún estado de aceptación del NFA
+    if any(normalize_state_name(state) in nfa_accepting_states for state in initial):
+        accepting_states.add('S0')
 
     while states:
         current = states.pop()
@@ -59,17 +72,16 @@ def subset_construction(nfa, start_state):
                     states.append(next_closure)
                     state_count += 1
                 dfa[current_name][symbol] = state_names[next_closure]
+
+                if any(normalize_state_name(state) in nfa_accepting_states for state in next_closure):
+                    accepting_states.add(state_names[next_closure])
             else:
                 dfa[current_name][symbol] = None
 
-    # Marcar los estados de aceptación en el AFD según las transiciones
+    # Construir el AFD resultante, marcando los estados de aceptación
     result_dfa = {}
     for state, transitions in dfa.items():
-        # Verificar si todas las transiciones son None o apuntan al mismo estado
-        is_accepting = all(target is None or target == state for target in transitions.values())
-        if is_accepting:
-            result_dfa[state + '*'] = transitions  # Marcar estado de aceptación con asterisco
-        else:
-            result_dfa[state] = transitions
+        state_suffix = '*' if state in accepting_states else ''
+        result_dfa[state + state_suffix] = {k: v if v in state_names.values() else None for k, v in transitions.items()}
 
     return result_dfa

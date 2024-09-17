@@ -33,11 +33,11 @@ def generate_graph(fsm, title, filename):
 def main():
     allowed_characters = re.compile(r'^[a-zA-Z()|+*#]*$')
 
-    #expression = input("Enter a regex expression (only characters allowed: ),(,*,+,| and letters): ")
-    #verbose = input("Enable verbose mode? (yes/no): ").lower() == 'yes'
+    expression = input("Enter a regex expression (only characters allowed: ),(,*,+,| and letters): ")
+    verbose = input("Enable verbose mode? (yes/no): ").lower() == 'yes'
 
-    expression = "((b|a)d|d)"
-    verbose = "yes"
+    # expression = "((b|a)d|d)"
+    # verbose = "yes"
     if allowed_characters.match(expression):
         postfix = shunting_yard_regex(expression, verbose)
         afn_thompson = regex_to_nfa_thompson(expression, verbose)
@@ -46,7 +46,7 @@ def main():
         pprint.pprint(afn_thompson)
 
         # Generar la imagen del AFN
-        generate_graph(afn_thompson, 'AFN Thompson', 'afn_thompson')
+        # generate_graph(afn_thompson, 'AFN Thompson', 'afn_thompson')
 
         start_state = 'S0'
         afd = subset_construction(afn_thompson, start_state)
@@ -54,14 +54,14 @@ def main():
         pprint.pprint(afd, width=1)
 
         # Generar la imagen del AFD
-        generate_graph(afd, 'AFD', 'afd')
+        # generate_graph(afd, 'AFD', 'afd')
 
         print('Minimized AFD: ')
         minimized_afd = hopcroft_minimization(afd)
         pprint.pprint(minimized_afd, width=1)
 
         # Generar la imagen del AFD minimizado
-        generate_graph(minimized_afd, 'Minimized AFD', 'minimized_afd')
+        # generate_graph(minimized_afd, 'Minimized AFD', 'minimized_afd')
     else:
         print("Invalid input. Please use only the allowed characters.")
 
