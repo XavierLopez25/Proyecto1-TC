@@ -1,23 +1,30 @@
-def remove_acceptance_marks(afd):
+def remove_acceptance_marks(afd, verbose=False):
     new_afd = {}
     acceptance_states = set()
     
     for state, transitions in afd.items():
+        if verbose:
+            print(f"Processing state: {state}")
         if '*' in state:
             acceptance_states.add(state.replace('*', ''))
             state = state.replace('*', '')
         new_afd[state] = transitions
     
+    if verbose:
+        print(f"Acceptance states after removal: {acceptance_states}")
     return new_afd, acceptance_states
 
-def hopcroft_minimization(afd):
-
-
+def hopcroft_minimization(afd, verbose=False):
     afd, acceptance_states = remove_acceptance_marks(afd)
 
     states = set(afd.keys())
     alphabet = set(next(iter(afd.values())).keys())  # Asumimos que todos los estados tienen el mismo alfabeto
     non_acceptance_states = states - acceptance_states
+
+    if verbose:
+        print(f"Initial states: {states}")
+        print(f"Acceptance states: {acceptance_states}")
+        print(f"Non-acceptance states: {non_acceptance_states}")
     
     # Verificar si el autómata tiene un solo estado y ese estado no tiene transiciones
     if len(afd) == 1 and all(not transitions for transitions in afd.values()):
@@ -32,6 +39,9 @@ def hopcroft_minimization(afd):
     acceptance_partition = {state for state in afd if '*' in state}
     non_acceptance_partition = set(afd.keys()) - acceptance_partition
     partitions = [acceptance_partition, non_acceptance_partition] if acceptance_partition else [non_acceptance_partition]
+
+    if verbose:
+        print(f"Initial partitions: {partitions}")
 
     def find_partition(state):
         if state is None:
@@ -70,6 +80,8 @@ def hopcroft_minimization(afd):
                     changed = True
                     break
             if changed:
+                if verbose:
+                    print(f"Refined partitions with symbol {symbol}: {partitions}")
                 break
 
     # Construir el AFD minimizado
@@ -107,5 +119,7 @@ def hopcroft_minimization(afd):
                 if all(afd[state][symbol] == representative_state for state in partition):
                     minimized_afd[partition_name][symbol] = partition_name
 
+                if verbose:
+                    print(f"Transition from {partition_name} on symbol '{symbol}' to {next_partition_name}")
 
     return minimized_afd
