@@ -61,7 +61,6 @@ def graficar_automata(automata, nombre='Automata', estado_inicial=None):
 
 
 
-
 def main():
     allowed_characters = re.compile(r'^[a-zA-Z0-9()|+*#]*$')
     os.system('cls' if os.name == 'nt' else 'clear')
