@@ -60,6 +60,9 @@ def graficar_automata(automata, nombre='Automata'):
 def main():
     allowed_characters = re.compile(r'^[a-zA-Z()|+*#]*$')
 
+    print("Welcome to the regex to minimized AFD converter \n Please enter a regex expression and choose if you want to enable verbose mode")
+    print("The syntax acepted are: \n - ( ) for grouping \n - | for OR \n - + for Kleene sum  \n - * for Kleene star \n - # for  \n - 0-9 for numbers")
+
     expression = input("Enter a regex expression (only characters allowed: ),(,*,+,| and letters): ")
     verbose = input("Enable verbose mode? (yes/no): ").lower() == 'yes'
 
