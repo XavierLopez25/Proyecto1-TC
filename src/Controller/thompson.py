@@ -1,61 +1,70 @@
 from Model.node import Node
-
-def regex_to_nfa_thompson(postfix, verbose=False):
-    def thompson_construction_postfix(postfix):
-        stack = []
+def regex_to_nfa_thompson(expression, verbose=False):
+    def parse_regex(expression):
+        tokens = list(expression.replace(' ', ''))
+        i = 0
 
         if verbose:
-            print(f"Processing postfix: {postfix}")
+            print(f"Parsing expression: {expression}")
 
-        for token in postfix:
-            if token.isalnum() or token == '#':
-                # Si es un carácter alfanumérico o '#', creamos un nodo CHAR
-                node = Node('CHAR', value=token)
-                stack.append(node)
+        def parse_term():
+            nonlocal i
+            if i >= len(tokens):
+                return None
+            if tokens[i] == '(':
+                i += 1
+                subexpr = parse_expression()
+                if i < len(tokens) and tokens[i] == ')':
+                    i += 1
+                    return subexpr
+                else:
+                    raise ValueError("Unbalanced parentheses")
+            elif tokens[i].isalpha() or tokens[i] == '#':
+                char = tokens[i]
+                i += 1
                 if verbose:
-                    print(f"Pushed CHAR node for {token} to stack")
-            elif token == '*':
-                # Si es un operador de Kleene, lo aplicamos al último nodo
-                node = stack.pop()
-                new_node = Node('KLEENE', [node])
-                stack.append(new_node)
-                if verbose:
-                    print(f"Applied Kleene star to node and pushed to stack")
-            elif token == '+':
-                # Si es un operador de Plus, lo aplicamos al último nodo
-                node = stack.pop()
-                new_node = Node('PLUS', [node])
-                stack.append(new_node)
-                if verbose:
-                    print(f"Applied Plus operator to node and pushed to stack")
-            elif token == '?':
-                # Si es un operador Opcional, lo aplicamos al último nodo
-                node = stack.pop()
-                new_node = Node('OPTIONAL', [node])
-                stack.append(new_node)
-                if verbose:
-                    print(f"Applied Optional operator to node and pushed to stack")
-            elif token == '|':
-                # Si es una alternancia (OR), tomamos dos nodos de la pila y creamos uno nuevo
-                right = stack.pop()
-                left = stack.pop()
-                new_node = Node('ALTERNATE', [left, right])
-                stack.append(new_node)
-                if verbose:
-                    print(f"Applied Alternation (OR) between nodes and pushed to stack")
-            elif token == '':
-                # Concatenación implícita
-                right = stack.pop()
-                left = stack.pop()
-                new_node = Node('CONCAT', [left, right])
-                stack.append(new_node)
-                if verbose:
-                    print(f"Applied Concatenation between nodes and pushed to stack")
+                    print(f"Parsed character: {char}")
+                return Node('CHAR', value=char)
             else:
-                raise ValueError(f"Unexpected token in postfix: {token}")
+                raise ValueError(f"Unexpected token: {tokens[i]}")
 
-        # El último nodo en la pila será el AFN completo
-        return stack.pop()
+        def parse_factor():
+            nonlocal i
+            node = parse_term()
+            while i < len(tokens) and tokens[i] in '*+?':
+                if tokens[i] == '*':
+                    node = Node('KLEENE', [node])
+                    if verbose:
+                        print(f"Parsed Kleene star for {node}")
+                elif tokens[i] == '+':
+                    node = Node('PLUS', [node])
+                    if verbose:
+                        print(f"Parsed Plus for {node}")
+                elif tokens[i] == '?':
+                    node = Node('OPTIONAL', [node])
+                    if verbose:
+                        print(f"Parsed Optional for {node}")
+                i += 1
+            return node
+
+        def parse_concat():
+            nonlocal i
+            nodes = []
+            while i < len(tokens) and tokens[i] not in '|)':
+                nodes.append(parse_factor())
+            if len(nodes) == 1:
+                return nodes[0]
+            return Node('CONCAT', nodes)
+
+        def parse_expression():
+            nonlocal i
+            node = parse_concat()
+            while i < len(tokens) and tokens[i] == '|':
+                i += 1
+                node = Node('ALTERNATE', [node, parse_concat()])
+            return node
+
+        return parse_expression()
 
     def thompson_construction(node):
         if verbose:
@@ -143,20 +152,16 @@ def regex_to_nfa_thompson(postfix, verbose=False):
         result[final_state_id] = {}
         return result
 
-    # Procesar la notación postfix y construir el árbol de nodos
-    regex_tree = thompson_construction_postfix(postfix)
+    regex = parse_regex(expression)
 
-    # Construir el AFN utilizando la construcción de Thompson
-    afn_start, afn_end = thompson_construction(regex_tree)
+    afn_start, afn_end = thompson_construction(regex)
 
-    # Crear los estados inicial y final del AFN
     initial_state = {}
     initial_state['EPSILON'] = [afn_start]
     final_state = {}
 
     afn_end['EPSILON'] = [final_state]
 
-    # Convertir el AFN a un diccionario de estados
     afn_dict = convert_to_dict(initial_state, final_state)
 
     # Identificar los estados de aceptación

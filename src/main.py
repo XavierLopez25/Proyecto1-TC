@@ -17,15 +17,11 @@ header = """
  ╚══╝╚══╝ ╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝       ╚═╝    ╚═════╝     ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚═════╝ 
 """
 
-def graficar_automata(automata, nombre='Automata'):
-
-    dot = Digraph(name=nombre, format='png')  # Puedes cambiar el formato si lo deseas
-    dot.attr(rankdir='LR')  # Orientación de izquierda a derecha
+def graficar_automata(automata, nombre='Automata', estado_inicial=None):
+    dot = Digraph(name=nombre, format='png')
+    dot.attr(rankdir='LR')
 
     estados_finales = set()
-    estados_iniciales = set(automata.keys())
-
-    # Añadir nodos
     for estado in automata:
         if estado.endswith('*'):
             nombre_estado = estado.rstrip('*')
@@ -34,36 +30,36 @@ def graficar_automata(automata, nombre='Automata'):
         else:
             dot.node(estado, estado, shape='circle')
 
-    # Opcional: Añadir un nodo inicial sin forma y una flecha hacia el estado inicial
-    dot.node('', shape='none')  # Nodo invisible
-    if automata:
-        primer_estado = list(automata.keys())[0]
-        dot.edge('', primer_estado)
+    if estado_inicial is None:
+        estado_inicial = list(automata.keys())[0]
 
-    # Añadir transiciones
+    # Asegurarse de que el estado inicial no termine en '*' para los casos de estados de aceptación
+    estado_inicial = estado_inicial.rstrip('*')
+
+    # Nodo inicial invisible y flecha hacia el estado inicial real
+    dot.node('', shape='none')
+    dot.edge('', estado_inicial, style='dashed')
+
     for estado, transiciones in automata.items():
-        origen = estado.rstrip('*') 
+        origen = estado.rstrip('*')
         for simbolo, destinos in transiciones.items():
             if isinstance(destinos, list):
                 for destino in destinos:
                     destino_nombre = destino.rstrip('*')
-                    etiqueta = simbolo
-                    if simbolo == 'EPSILON':
-                        etiqueta = 'ε'
+                    etiqueta = 'ε' if simbolo == 'EPSILON' else simbolo
                     dot.edge(origen, destino_nombre, label=etiqueta)
             elif isinstance(destinos, str):
                 destino_nombre = destinos.rstrip('*')
-                etiqueta = simbolo
-                if simbolo == 'EPSILON':
-                    etiqueta = 'ε'
+                etiqueta = 'ε' if simbolo == 'EPSILON' else simbolo
                 dot.edge(origen, destino_nombre, label=etiqueta)
             elif destinos is None:
-                pass  # No hay transición para este símbolo
+                continue  # No hay transición para este símbolo
             else:
                 raise ValueError(f"Formato de destino no reconocido: {destinos}")
 
-    # Renderizar el grafo
     dot.render(nombre, view=True)
+
+
 
 
 def main():
@@ -92,7 +88,7 @@ def main():
         print("🔳"*50,"\n")
 
         print("PROCESS AFN THOMPSON\n")
-        afn_thompson = regex_to_nfa_thompson(postfix, verbose)
+        afn_thompson = regex_to_nfa_thompson(expression, verbose)
         print("AFN w/ Thompson:")
         pprint.pprint(afn_thompson)
         print("\n")

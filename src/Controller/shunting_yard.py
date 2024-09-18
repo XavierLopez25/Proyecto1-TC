@@ -1,68 +1,55 @@
+def handle_operator(token, operators, output, precedence, associative, verbose):
+    while operators:
+        top_operator = operators[-1]
+        if top_operator == '(':
+            break
+        if (precedence[top_operator] > precedence[token]) or \
+           (precedence[top_operator] == precedence[token] and associative[token] == 'L'):
+            output.append(operators.pop())
+            if verbose:
+                print(f"Popped {top_operator} from operators due to precedence and added to output")
+        else:
+            break
+    operators.append(token)
+    if verbose:
+        print(f"Added {token} to operators")
+
+
 def shunting_yard_regex(expression, verbose=False):
-    # Definir la precedencia y la asociatividad de los operadores
-    precedence = {'*': 3, '+': 3, '?': 3, '': 2, '|': 1}
-    associative = {'*': 'R', '+': 'R', '?': 'R', '': 'L', '|': 'L'}
-    output = []  # Lista de salida para almacenar la notación postfija
-    operators = []  # Pila para operadores
-    
+    precedence = {'*': 3, '+': 3, '?': 3, '|': 1, '': 2}  # Asegurar que la concatenación implícita tiene precedencia definida
+    associative = {'*': 'R', '+': 'R', '?': 'R', '|': 'L', '': 'L'}
+    output = []
+    operators = []
+    last_was_operand_or_close = False  # Para manejar la inserción de concatenaciones implícitas
+
     if verbose:
         print(f"Processing expression: {expression}")
 
     i = 0
     while i < len(expression):
         token = expression[i]
-
         if token.isalnum() or token == '#':
-            # Si el token es un carácter alfanumérico (letra o número) o el caracter especial '#'
+            if last_was_operand_or_close:  # Inserción de concatenación implícita si procede
+                handle_operator('', operators, output, precedence, associative, verbose)
             output.append(token)
-            if verbose:
-                print(f"Adding {token} to output")
+            last_was_operand_or_close = True
         elif token in precedence:
-            # Si el token es un operador
-            while (operators and operators[-1] != '(' and
-                   (precedence[operators[-1]] > precedence[token] or
-                    (precedence[operators[-1]] == precedence[token] and associative[token] == 'L'))):
-                # Desapilar operadores de mayor o igual precedencia
-                popped = operators.pop()
-                output.append(popped)
-                if verbose:
-                    print(f"Popped {popped} from operators and added to output")
-            operators.append(token)
-            if verbose:
-                print(f"Added {token} to operators")
+            handle_operator(token, operators, output, precedence, associative, verbose)
+            last_was_operand_or_close = token == '*' or token == '+' or token == '?'  # Mantener después de operadores que no requieren otro operando directamente después
         elif token == '(':
-            # Si es un paréntesis de apertura
+            if last_was_operand_or_close:  # Inserción de concatenación implícita antes de '(' si procede
+                handle_operator('', operators, output, precedence, associative, verbose)
             operators.append(token)
-            if verbose:
-                print("Added '(' to operators")
+            last_was_operand_or_close = False
         elif token == ')':
-            # Si es un paréntesis de cierre, desapilar hasta encontrar '('
             while operators and operators[-1] != '(':
-                popped = operators.pop()
-                output.append(popped)
-                if verbose:
-                    print(f"Popped {popped} from operators and added to output")
-            operators.pop()  # Quitar el '('
-            if verbose:
-                print("Popped '(' from operators")
+                output.append(operators.pop())
+            operators.pop()
+            last_was_operand_or_close = True  # ')' se comporta como un operando para la concatenación
 
-        # Añadir operador de concatenación implícita
-        if i + 1 < len(expression):
-            next_token = expression[i + 1]
-            # Añadir concatenación implícita si el token actual es un símbolo válido para concatenar
-            if (token.isalnum() or token == ')' or token in '*+?#') and (next_token.isalnum() or next_token == '(' or next_token == '#'):
-                operators.append('')
-                if verbose:
-                    print("Added implicit concatenation operator")
-        
         i += 1
 
-    # Desapilar los operadores restantes
     while operators:
-        popped = operators.pop()
-        output.append(popped)
-        if verbose:
-            print(f"Popped {popped} from operators and added to output")
+        output.append(operators.pop())
 
-    return ''.join(output)  # Convertir la lista de salida en una cadena
-
+    return ''.join(output)
