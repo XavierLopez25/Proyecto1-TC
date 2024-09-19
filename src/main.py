@@ -70,10 +70,13 @@ def main():
     print(header)
     print("🔳"*93,"\n")
     print("Please enter a regex expression and choose if you want to enable verbose mode")
-    print("The syntax acepted are: \n - ( ) for grouping \n - | for OR \n - + for Kleene sum  \n - * for Kleene star \n - # for  \n - 0-9 for numbers \n")
+    print("The syntax accepted are: \n - ( ) for grouping \n - | for OR \n - + for Kleene sum \n - * for Kleene star \n - . for concatenation \n - 0-9 for numbers \n")
+    print("Here is an example of a regex expression:")
+    print("\tExample: ((b|a).d|d*)\n")
+
     print("🔳"*93,"\n")
 
-    expression = input("Enter a regex expression (only characters allowed: ),(,*,+,| and letters): ")
+    expression = input("Enter a regex expression (only characters allowed: ),(,*,+,|,., letters and numbers): ")
     verbose = input("Enable verbose mode? (yes/no): ").lower() == 'yes'
 
 
