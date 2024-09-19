@@ -7,15 +7,14 @@ class Node:
     def __str__(self):
         if self.type == 'CHAR':
             return self.value
-        elif self.type == 'EPSILON':
-            return '#'  
+        elif self.type == 'KLEENE':
+            return f"{str(self.children[0])}*"
+        elif self.type == 'PLUS':
+            return f"{str(self.children[0])}+"
+        elif self.type == 'OPTIONAL':
+            return f"{str(self.children[0])}?"
         elif self.type == 'CONCAT':
             return '.'.join(str(child) for child in self.children)
         elif self.type == 'ALTERNATE':
             return '|'.join(str(child) for child in self.children)
-        elif self.type == 'KLEENE':
-            return str(self.children[0]) + '*'
-        elif self.type == 'PLUS':
-            return str(self.children[0]) + '+'
-        elif self.type == 'OPTIONAL':
-            return str(self.children[0]) + '?'
+        return 'Undefined'

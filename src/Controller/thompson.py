@@ -1,176 +1,107 @@
 from Model.node import Node
-def regex_to_nfa_thompson(expression, verbose=False):
-    def parse_regex(expression):
-        tokens = list(expression.replace(' ', ''))
-        i = 0
+from Controller.shunting_yard import shunting_yard_regex    
 
-        if verbose:
-            print(f"Parsing expression: {expression}")
+def parse_postfix(expression):
+    stack = []
+    tokens = list(expression)
+    for token in tokens:
+        if token.isalnum():
+            stack.append(Node('CHAR', value=token))
+        elif token in {'*', '+', '?'}:
+            operand = stack.pop() if stack else Node('Undefined')
+            node_type = {'*': 'KLEENE', '+': 'PLUS', '?': 'OPTIONAL'}[token]
+            stack.append(Node(node_type, [operand]))
+        elif token == '.':
+            right = stack.pop() if stack else Node('Undefined')
+            left = stack.pop() if stack else Node('Undefined')
+            stack.append(Node('CONCAT', [left, right]))
+        elif token == '|':
+            right = stack.pop() if stack else Node('Undefined')
+            left = stack.pop() if stack else Node('Undefined')
+            stack.append(Node('ALTERNATE', [left, right]))
+    return stack.pop() if stack else Node('Undefined')
 
-        def parse_term():
-            nonlocal i
-            if i >= len(tokens):
-                return None
-            if tokens[i] == '(':
-                i += 1
-                subexpr = parse_expression()
-                if i < len(tokens) and tokens[i] == ')':
-                    i += 1
-                    return subexpr
-                else:
-                    raise ValueError("Unbalanced parentheses")
-            elif tokens[i].isalpha() or tokens[i] == '#':
-                char = tokens[i]
-                i += 1
-                if verbose:
-                    print(f"Parsed character: {char}")
-                return Node('CHAR', value=char)
-            else:
-                raise ValueError(f"Unexpected token: {tokens[i]}")
-
-        def parse_factor():
-            nonlocal i
-            node = parse_term()
-            while i < len(tokens) and tokens[i] in '*+?':
-                if tokens[i] == '*':
-                    node = Node('KLEENE', [node])
-                    if verbose:
-                        print(f"Parsed Kleene star for {node}")
-                elif tokens[i] == '+':
-                    node = Node('PLUS', [node])
-                    if verbose:
-                        print(f"Parsed Plus for {node}")
-                elif tokens[i] == '?':
-                    node = Node('OPTIONAL', [node])
-                    if verbose:
-                        print(f"Parsed Optional for {node}")
-                i += 1
-            return node
-
-        def parse_concat():
-            nonlocal i
-            nodes = []
-            while i < len(tokens) and tokens[i] not in '|)':
-                nodes.append(parse_factor())
-            if len(nodes) == 1:
-                return nodes[0]
-            return Node('CONCAT', nodes)
-
-        def parse_expression():
-            nonlocal i
-            node = parse_concat()
-            while i < len(tokens) and tokens[i] == '|':
-                i += 1
-                node = Node('ALTERNATE', [node, parse_concat()])
-            return node
-
-        return parse_expression()
-
-    def thompson_construction(node):
-        if verbose:
-            print(f"Constructing NFA for node: {node}")
-
-        if node.type == 'CHAR':
-            start = {}
-            end = {}
-            if node.value == '#':
-                start['EPSILON'] = [end]
-            else:
-                start[node.value] = [end]
-            if verbose:
-                print(f"Created NFA for character {node.value}")
-            return start, end
-
-        elif node.type == 'CONCAT':
-            current_start, current_end = thompson_construction(node.children[0])
-            for child in node.children[1:]:
-                next_start, next_end = thompson_construction(child)
-                current_end['EPSILON'] = [next_start]
-                current_end = next_end
-            return current_start, current_end
-
-        elif node.type == 'ALTERNATE':
-            start = {}
-            end = {}
-            for child in node.children:
-                child_start, child_end = thompson_construction(child)
-                start['EPSILON'] = start.get('EPSILON', []) + [child_start]
-                child_end['EPSILON'] = [end]
-            return start, end
-
-        elif node.type == 'KLEENE':
-            start = {}
-            end = {}
-            child_start, child_end = thompson_construction(node.children[0])
-            start['EPSILON'] = [child_start, end]
-            child_end['EPSILON'] = [child_start, end]
-            return start, end
-
-        elif node.type == 'PLUS':
-            child_start, child_end = thompson_construction(node.children[0])
-            start = {}
-            end = {}
-            start['EPSILON'] = [child_start]
-            child_end['EPSILON'] = [child_start, end]
-            return start, end
-
-        elif node.type == 'OPTIONAL':
-            start = {}
-            end = {}
-            child_start, child_end = thompson_construction(node.children[0])
-            start['EPSILON'] = [child_start, end]
+def thompson_construction(node):
+    if node.type == 'CHAR':
+        start = {}
+        end = {}
+        start[node.value] = [end]
+        return start, end
+    elif node.type == 'CONCAT':
+        left_start, left_end = thompson_construction(node.children[0])
+        right_start, right_end = thompson_construction(node.children[1])
+        left_end['EPSILON'] = [right_start]
+        return left_start, right_end
+    elif node.type == 'ALTERNATE':
+        start = {}
+        end = {}
+        for child in node.children:
+            child_start, child_end = thompson_construction(child)
+            start.setdefault('EPSILON', []).append(child_start)
             child_end['EPSILON'] = [end]
-            return start, end
+        return start, end
+    elif node.type == 'KLEENE':
+        start = {}
+        end = {}
+        child_start, child_end = thompson_construction(node.children[0])
+        start['EPSILON'] = [child_start, end]
+        child_end['EPSILON'] = [start]
+        return start, end
+    elif node.type == 'PLUS':
+        child_start, child_end = thompson_construction(node.children[0])
+        child_end['EPSILON'] = [child_start]
+        return child_start, child_end
+    elif node.type == 'OPTIONAL':
+        start = {}
+        end = {}
+        child_start, child_end = thompson_construction(node.children[0])
+        start['EPSILON'] = [child_start, end]
+        child_end['EPSILON'] = [end]
+        return start, end
+    else:
+        raise ValueError(f"Unrecognized node type: {node.type}")
 
-        else:
-            raise ValueError(f"Unrecognized node type: {node.type}")
+def convert_to_dict(start_state, end_state):
+    state_counter = 0
+    state_map = {}
+    result = {}
 
-    def convert_to_dict(start_state, end_state):
-        state_counter = 0
-        state_map = {}
-        result = {}
+    def get_state_id(state):
+        nonlocal state_counter
+        if id(state) not in state_map:
+            state_map[id(state)] = f'S{state_counter}'
+            state_counter += 1
+        return state_map[id(state)]
 
-        def get_state_id(state):
-            nonlocal state_counter
-            if id(state) not in state_map:
-                state_map[id(state)] = f'S{state_counter}'
-                state_counter += 1
-            return state_map[id(state)]
-
-        def traverse(state):
-            state_id = get_state_id(state)
-            if state_id in result:
-                return
+    def traverse(state):
+        state_id = get_state_id(state)
+        if state_id not in result:
             result[state_id] = {}
             for symbol, next_states in state.items():
                 result[state_id][symbol] = [get_state_id(next_state) for next_state in next_states]
                 for next_state in next_states:
                     traverse(next_state)
 
-        traverse(start_state)
-        final_state_id = get_state_id(end_state)
-        result[final_state_id] = {}
-        return result
+    traverse(start_state)
+    final_state_id = get_state_id(end_state)
+    # Agregar un asterisco al identificador del estado de aceptación para marcarlo claramente
+    result[f"{final_state_id}*"] = result.pop(final_state_id)
+    return result
 
-    regex = parse_regex(expression)
 
-    afn_start, afn_end = thompson_construction(regex)
+def regex_to_nfa_thompson(expression, verbose=False):
+    postfix_expression = shunting_yard_regex(expression, verbose)
+    syntax_tree = parse_postfix(postfix_expression)
+    if syntax_tree is None:
+        if verbose:
+            print("Syntax tree construction failed.")
+        return None
 
-    initial_state = {}
-    initial_state['EPSILON'] = [afn_start]
-    final_state = {}
+    afn_start, afn_end = thompson_construction(syntax_tree)
+    if afn_start is None or afn_end is None:
+        if verbose:
+            print("Thompson construction failed.")
+        return None
 
-    afn_end['EPSILON'] = [final_state]
-
-    afn_dict = convert_to_dict(initial_state, final_state)
-
-    # Identificar los estados de aceptación
-    accepting_states = {state for state, transitions in afn_dict.items() if not transitions}
-
-    # Marcar los estados de aceptación
-    result_afn = {}
-    for state, transitions in afn_dict.items():
-        acceptance_mark = "*" if state in accepting_states else ""
-        result_afn[f"{state}{acceptance_mark}"] = transitions
-
+    result_afn = convert_to_dict(afn_start, afn_end)
     return result_afn

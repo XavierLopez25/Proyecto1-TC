@@ -22,16 +22,10 @@ def graficar_automata(automata, nombre='Automata', estado_inicial=None):
     dot.attr(rankdir='LR')
 
     estados_finales = set()
-    for estado in automata:
-        if estado.endswith('*'):
-            nombre_estado = estado.rstrip('*')
-            dot.node(nombre_estado, nombre_estado, shape='doublecircle')
-            estados_finales.add(nombre_estado)
-        else:
-            dot.node(estado, estado, shape='circle')
 
+    # Verificar si S0 está en el autómata, si no, toma el primer estado disponible
     if estado_inicial is None:
-        estado_inicial = list(automata.keys())[0]
+        estado_inicial = 'S0' if 'S0' in automata else list(automata.keys())[0]
 
     # Asegurarse de que el estado inicial no termine en '*' para los casos de estados de aceptación
     estado_inicial = estado_inicial.rstrip('*')
@@ -39,6 +33,14 @@ def graficar_automata(automata, nombre='Automata', estado_inicial=None):
     # Nodo inicial invisible y flecha hacia el estado inicial real
     dot.node('', shape='none')
     dot.edge('', estado_inicial, style='dashed')
+
+    for estado in automata:
+        if estado.endswith('*'):
+            nombre_estado = estado.rstrip('*')
+            dot.node(nombre_estado, nombre_estado, shape='doublecircle')
+            estados_finales.add(nombre_estado)
+        else:
+            dot.node(estado, estado, shape='circle')
 
     for estado, transiciones in automata.items():
         origen = estado.rstrip('*')
@@ -57,12 +59,13 @@ def graficar_automata(automata, nombre='Automata', estado_inicial=None):
             else:
                 raise ValueError(f"Formato de destino no reconocido: {destinos}")
 
+    # Renderizar y abrir el diagrama generado
     dot.render(nombre, view=True)
 
 
 
 def main():
-    allowed_characters = re.compile(r'^[a-zA-Z0-9()|+*#]*$')
+    allowed_characters = re.compile(r'^[a-zA-Z0-9()|+*#.]*$')
     os.system('cls' if os.name == 'nt' else 'clear')
     print(header)
     print("🔳"*93,"\n")
